@@ -20,9 +20,9 @@ NEWSPIDER_MODULE = 'mybid.spiders'
 ###### DB config ######
 DB_HOST = 'localhost'
 DB_PORT = 3306
-DB_USER = 'lei'
-DB_PASSWD = '123456'
-DB_DB = 'worth_mai'
+DB_USER = 'abc'
+DB_PASSWD = '111'
+DB_DB = 'realmai'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'mybid (+http://www.yourdomain.com)'
