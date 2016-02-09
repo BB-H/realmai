@@ -15,7 +15,7 @@ class JdSpider(scrapy.Spider):
 	root_url = HTTP_SITE_ROOT+"/allSort.aspx"
 	TYPE_LIST_PAGE = "http://list.jd.com/list.html?"
 	TYPE_ITEM_PAGE = "http://item.jd.com"
-	MAX_LIST_PAGE = 3 #指定某一个list页抓取的最大页数
+	MAX_LIST_PAGE = 50 #指定某一个list页抓取的最大页数
 	#allUrlSet = set()
 	allReachedUrls = set()
 	
@@ -40,12 +40,18 @@ class JdSpider(scrapy.Spider):
 	def parseUrl(self,resp):
 		self.allReachedUrls.add(resp.url)
 		if resp.url.startswith(self.TYPE_LIST_PAGE):
-			links = resp.xpath('//a/@href').extract()
+			#1. deal with all items in the list page
+			links = resp.xpath('//*[@id="plist"]/ul/li/div/div[1]/a/@href').extract()
 			for link in links:
 				if not link.strip().lower().startswith("http://"):
 					link = self.toFullURL(resp,link)
 				if link in self.allReachedUrls:
 					continue
+				req = Request(link,self.parseUrl)
+				req.meta['PhantomJS'] = True
+				yield req
+				
+				'''
 				if (link.startswith(self.TYPE_LIST_PAGE) and resp.meta['depth'] <= self.MAX_LIST_PAGE) or \
 				link.startswith(self.TYPE_ITEM_PAGE):
 					req = Request(link,self.parseUrl)
@@ -53,6 +59,25 @@ class JdSpider(scrapy.Spider):
 					if link.startswith(self.TYPE_ITEM_PAGE):
 						req.meta['PhantomJS'] = True
 					yield req
+				'''
+			#2. deal with next page
+			if resp.meta['depth'] <= self.MAX_LIST_PAGE:
+				theNextPage = ""
+				#get all the links which is after the current page
+				selectors = resp.xpath('//*[@id="J_bottomPage"]/span[1]/a[@class="curr"]/following-sibling::a')
+				for selector in selectors:
+					#only the link which has empty class and first time appears after current link is the next page.
+					classVal = selector.xpath('@class')[0].extract().encode("utf-8")
+					if classVal.strip() == "":
+						theNextPage = selector.xpath('@href')[0].extract().encode('utf-8')
+						break
+				if theNextPage != "":
+					theNextPage = self.toFullURL(resp,theNextPage)
+					req = Request(theNextPage,self.parseUrl)
+					req.meta['depth'] = resp.meta['depth']+1
+					yield req
+			else:
+				logging.info("Reached max page deepth, ending crawling.")
 		if resp.url.startswith(self.TYPE_ITEM_PAGE):
 			#logging.info("DEAL WITH ITEM PAGE:"+resp.url)
 			item_name = resp.xpath('//*[@id="name"]/h1/text()')[0].extract().encode("utf-8")

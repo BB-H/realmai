@@ -9,8 +9,10 @@
 #     http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 #     http://scrapy.readthedocs.org/en/latest/topics/spider-middleware.html
 
+#import logging
+#from scrapy.utils.log import configure_logging
 import logging
-from scrapy.utils.log import configure_logging
+from logging.handlers import RotatingFileHandler
 
 BOT_NAME = 'mybid'
 
@@ -20,9 +22,9 @@ NEWSPIDER_MODULE = 'mybid.spiders'
 ###### DB config ######
 DB_HOST = 'localhost'
 DB_PORT = 3306
-DB_USER = 'abc'
-DB_PASSWD = '111'
-DB_DB = 'realmai'
+DB_USER = 'xxxxxxx'
+DB_PASSWD = 'xxxxxx'
+DB_DB = 'xxxxxxxxxx'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'mybid (+http://www.yourdomain.com)'
@@ -97,9 +99,16 @@ ITEM_PIPELINES = {
 #HTTPCACHE_IGNORE_HTTP_CODES=[]
 #HTTPCACHE_STORAGE='scrapy.extensions.httpcache.FilesystemCacheStorage'
 
+'''
 configure_logging(install_root_handler=False)
 logging.basicConfig(
     filename='jd.log',
     format='%(levelname)s: %(message)s',
     level=logging.INFO
 )
+'''
+log_name = 'jd.log'
+logging.basicConfig(filename=log_name)
+log = logging.getLogger()
+handler = RotatingFileHandler(log_name,maxBytes=5*1024*1024,backupCount=3)
+log.addHandler(handler)
