@@ -7,7 +7,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-#logger = logging.getLogger("jdLogger")
+from scrapy.utils.project import get_project_settings
+
+import MySQLdb
+
+SETTINGS = get_project_settings()
 
 class PhantomJSMiddleware(object):  
 	# overwrite process request  
@@ -18,8 +22,8 @@ class PhantomJSMiddleware(object):
 			#if request.meta.has_key('proxy'): # 如果设置了代理(由代理中间件设置)
 			#	logging.info('PhantomJS proxy:'+request.meta['proxy'][7:])  
 			#	service_args.append('--proxy='+request.meta['proxy'][7:])  
-			try:  
-				driver = webdriver.PhantomJS(executable_path = '/usr/local/bin/phantomjs', service_args = service_args,)  
+			driver = webdriver.PhantomJS(executable_path = '/usr/local/bin/phantomjs', service_args = service_args,)
+			try:
 				driver.get(request.url)
 				wait = WebDriverWait(driver, 10)#设置超时时长
 				wait.until(EC.visibility_of_element_located((By.ID, 'jd-price')))#直到jd-price元素被填充之后才算请求完成
@@ -27,7 +31,6 @@ class PhantomJSMiddleware(object):
 				#price =  "######>>> URL:%s,PRICE:%s ###" %(request.url,driver.find_element_by_id('jd-price').text.encode('utf-8'))
 				content = driver.page_source.encode('utf-8')
 				url = driver.current_url.encode('utf-8') 
-				driver.quit()  
 				if content == '<html><head></head><body></body></html>':# 
 					logging.debug("PhantomJS Request failed!")
 					return HtmlResponse(request.url, encoding = 'utf-8', status = 503, body = '')  
@@ -38,5 +41,36 @@ class PhantomJSMiddleware(object):
 				print e
 				errorStack = traceback.format_exc()
 				logging.error('PhantomJS request exception! exception info:%s'%errorStack)
-				return HtmlResponse(request.url, encoding = 'utf-8', status = 503, body = '')  
+				return HtmlResponse(request.url, encoding = 'utf-8', status = 503, body = '')
+			finally:
+				driver.quit()
  
+
+
+class ItemFilterMiddleware(object):
+	'''
+	This is a spider middleware that is used to filter and drop the request which already exists in DB. 
+	'''
+	TYPE_ITEM_PAGE = "http://item.jd.com"
+	
+	def __init__(self):
+		self.db = MySQLdb.connect(host=SETTINGS['DB_HOST'],
+						user=SETTINGS['DB_USER'],
+						passwd=SETTINGS['DB_PASSWD'],
+						db=SETTINGS['DB_DB'])
+		self.cur = self.db.cursor()
+	
+	def __del__(self):
+		self.db.close()
+	
+	def process_spider_output(self,response, result, spider):
+		for r in result:
+			if isinstance(r,Request) and r.url.startswith(self.TYPE_ITEM_PAGE):
+				sql = "SELECT id from JD_Item where item_link = '%s'" %r.url.strip()
+				self.cur.execute(sql)
+				if len(self.cur.fetchall())==0:
+					yield r
+				else:
+					logging.info('The URL exists in DB, skip it: %s' % r.url)
+			else:
+				yield r
