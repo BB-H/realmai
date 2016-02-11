@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from scrapy.http import HtmlResponse
 from scrapy.http import Request
-import logging, traceback
+import os, logging, traceback
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
@@ -17,7 +17,7 @@ class PhantomJSMiddleware(object):
 	# overwrite process request  
 	def process_request(self, request, spider):
 		if request.meta.has_key('PhantomJS'):# 
-			logging.info('PhantomJS Requesting: '+request.url)  
+			logging.info('[PID:%s] PhantomJS Requesting: %s' %(os.getpid(),request.url))  
 			service_args = ['--load-images=false', '--disk-cache=true']  
 			#if request.meta.has_key('proxy'): # 如果设置了代理(由代理中间件设置)
 			#	logging.info('PhantomJS proxy:'+request.meta['proxy'][7:])  
@@ -25,22 +25,22 @@ class PhantomJSMiddleware(object):
 			driver = webdriver.PhantomJS(executable_path = '/usr/local/bin/phantomjs', service_args = service_args,)
 			try:
 				driver.get(request.url)
-				wait = WebDriverWait(driver, 10)#设置超时时长
+				wait = WebDriverWait(driver, 5)#设置超时时长
 				wait.until(EC.visibility_of_element_located((By.ID, 'jd-price')))#直到jd-price元素被填充之后才算请求完成
 				#wait.until(EC.invisibility_of_element_located((By.CSS_SELECTOR, '.archive_loading_bar')))
 				#price =  "######>>> URL:%s,PRICE:%s ###" %(request.url,driver.find_element_by_id('jd-price').text.encode('utf-8'))
 				content = driver.page_source.encode('utf-8')
 				url = driver.current_url.encode('utf-8') 
 				if content == '<html><head></head><body></body></html>':# 
-					logging.debug("PhantomJS Request failed!")
+					logging.debug("[PID:%s] PhantomJS Request failed!" %os.getpid())
 					return HtmlResponse(request.url, encoding = 'utf-8', status = 503, body = '')  
 				else: # 
-					logging.debug("PhantomJS Request success!")
+					logging.debug("[PID:%s]PhantomJS Request success!" %os.getpid())
 					return HtmlResponse(url, encoding = 'utf-8', status = 200, body = content) 
 			except Exception as e: 
 				print e
 				errorStack = traceback.format_exc()
-				logging.error('PhantomJS request exception! exception info:%s'%errorStack)
+				logging.error('[PID:%s] PhantomJS request exception! exception info:%s'%(os.getpid(),errorStack))
 				return HtmlResponse(request.url, encoding = 'utf-8', status = 503, body = '')
 			finally:
 				driver.quit()
@@ -71,6 +71,6 @@ class ItemFilterMiddleware(object):
 				if len(self.cur.fetchall())==0:
 					yield r
 				else:
-					logging.info('The URL exists in DB, skip it: %s' % r.url)
+					logging.info('[PID:%s]The URL exists in DB, skip it: %s' %(os.getpid(),r.url))
 			else:
 				yield r

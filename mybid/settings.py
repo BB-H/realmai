@@ -22,15 +22,15 @@ NEWSPIDER_MODULE = 'mybid.spiders'
 ###### DB config ######
 DB_HOST = 'localhost'
 DB_PORT = 3306
-DB_USER = 'xxx'
-DB_PASSWD = 'xxx'
-DB_DB = 'xxx'
+DB_USER = '111'
+DB_PASSWD = '111'
+DB_DB = '111'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'mybid (+http://www.yourdomain.com)'
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-#CONCURRENT_REQUESTS=32
+CONCURRENT_REQUESTS=32
 
 # Configure a delay for requests for the same website (default: 0)
 # See http://scrapy.readthedocs.org/en/latest/topics/settings.html#download-delay
@@ -111,5 +111,5 @@ logging.basicConfig(
 log_name = 'jd.log'
 logging.basicConfig(filename=log_name)
 log = logging.getLogger()
-handler = RotatingFileHandler(log_name,maxBytes=5*1024*1024,backupCount=3)
+handler = RotatingFileHandler(log_name,maxBytes=3*1024*1024,backupCount=5)
 log.addHandler(handler)
