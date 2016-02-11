@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import scrapy
-import logging
+import os, logging
 from scrapy.utils.response import get_base_url
 from scrapy.utils.url import urljoin_rfc
 from scrapy.http import Request
@@ -77,7 +77,7 @@ class JdSpider(scrapy.Spider):
 					req.meta['depth'] = resp.meta['depth']+1
 					yield req
 			else:
-				logging.info("Reached max page deepth, ending crawling.")
+				logging.info("[PID:%s]Reached max page deepth, ending crawling." %os.getpid())
 		if resp.url.startswith(self.TYPE_ITEM_PAGE):
 			#logging.info("DEAL WITH ITEM PAGE:"+resp.url)
 			item_name = resp.xpath('//*[@id="name"]/h1/text()')[0].extract().encode("utf-8")
