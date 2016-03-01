@@ -26,6 +26,8 @@ DB_USER = '111'
 DB_PASSWD = '111'
 DB_DB = '111'
 
+#DEPTH_LIMIT = 200
+
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'mybid (+http://www.yourdomain.com)'
 
