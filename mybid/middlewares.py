@@ -25,20 +25,17 @@ class PhantomJSMiddleware(object):
 			driver = webdriver.PhantomJS(executable_path = '/usr/local/bin/phantomjs', service_args = service_args,)
 			try:
 				driver.get(request.url)
-				wait = WebDriverWait(driver, 5)#设置超时时长
+				wait = WebDriverWait(driver, 15)#设置超时时长
 				wait.until(EC.visibility_of_element_located((By.ID, 'jd-price')))#直到jd-price元素被填充之后才算请求完成
-				#wait.until(EC.invisibility_of_element_located((By.CSS_SELECTOR, '.archive_loading_bar')))
-				#price =  "######>>> URL:%s,PRICE:%s ###" %(request.url,driver.find_element_by_id('jd-price').text.encode('utf-8'))
 				content = driver.page_source.encode('utf-8')
 				url = driver.current_url.encode('utf-8') 
-				if content == '<html><head></head><body></body></html>':# 
+				if content is None or content.strip()=="" or content == '<html><head></head><body></body></html>':# 
 					logging.debug("[PID:%s] PhantomJS Request failed!" %os.getpid())
 					return HtmlResponse(request.url, encoding = 'utf-8', status = 503, body = '')  
 				else: # 
 					logging.debug("[PID:%s]PhantomJS Request success!" %os.getpid())
 					return HtmlResponse(url, encoding = 'utf-8', status = 200, body = content) 
 			except Exception as e: 
-				print e
 				errorStack = traceback.format_exc()
 				logging.error('[PID:%s] PhantomJS request exception! exception info:%s'%(os.getpid(),errorStack))
 				return HtmlResponse(request.url, encoding = 'utf-8', status = 503, body = '')
@@ -66,8 +63,9 @@ class ItemFilterMiddleware(object):
 	def process_spider_output(self,response, result, spider):
 		for r in result:
 			if isinstance(r,Request) and r.url.startswith(self.TYPE_ITEM_PAGE):
-				sql = "SELECT id from JD_Item where item_link = '%s'" %r.url.strip()
-				self.cur.execute(sql)
+				#sql = "SELECT id from JD_Item where item_link = '%s'" %r.url.strip()
+				sql = "SELECT id from JD_Item where item_link = %s" #%r.url.strip()
+				self.cur.execute(sql,(r.url.strip(),))
 				if len(self.cur.fetchall())==0:
 					yield r
 				else:

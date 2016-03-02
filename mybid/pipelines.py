@@ -66,21 +66,23 @@ class MySQLPipeline(object):
 		res = tx.execute(sql)
 		if res == 0:
 			logging.info("[PID:%s]Insert JD item (jdID=%s)." %(os.getpid(),item['jdId']))
-			sql = "INSERT INTO JD_Item (jd_id,name,item_price,item_link) VALUES ('%s','%s','%s','%s')"%(item['jdId'],item['name'],item['price'],item['itemLink'])
+			logging.debug("[PID:%s]New item:\n %s" %(os.getpid(),item.toString()))
+			#sql = "INSERT INTO JD_Item (jd_id,name,item_price,item_link) VALUES ('%s','%s','%s','%s')"%(item['jdId'],item['name'],item['price'],item['itemLink'])
+			sql = "INSERT INTO JD_Item (jd_id,name,item_price,item_link) VALUES (%s,%s,%s,%s)" #%(item['jdId'],item['name'],item['price'],item['itemLink'])
 			#result = tx.execute(""" INSERT INTO JD_Item (jd_id,name) VALUES (item['jdId'],item['name'])""") 
-			result = tx.execute(sql)
+			result = tx.execute(sql,(item['jdId'],item['name'],item['price'],item['itemLink']))
 			if result > 0:
 				self.stats.inc_value('database/items_added')
 		else:
 			logging.info("[PID:%s]Duplicated item(jdID=%s), ignore it!" %(os.getpid(),item['jdId']))
 		
-	
+	'''
 	def _insert_record(self, tx, item):
 		sql = "INSERT INTO JD_Item (jd_id,name,item_price,item_link) VALUES ('%s','%s','%s','%s')"%(item['jdId'],item['name'],item['price'],item['itemLink'])
 		#result = tx.execute(""" INSERT INTO JD_Item (jd_id,name) VALUES (item['jdId'],item['name'])""") 
 		result = tx.execute(sql)
 		if result > 0:
 			self.stats.inc_value('database/items_added')
-
+	'''
 	def _handle_error(self, e):
 		logging.error("[PID:%s] DB operating ERROR:%s" %(os.getpid(),e))  

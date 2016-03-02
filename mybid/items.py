@@ -20,6 +20,9 @@ class JDItem(scrapy.Item):
 	price = scrapy.Field()
 	itemLink = scrapy.Field()
 	
+	def toString(self):
+		return "name=%s \njdId=%s \nprice=%s \nitemLink=%s \n" %(self['name'],self['jdId'],self['price'],self['itemLink'])
+	
 	'''
 	def __init__(self,name,jdId,price,itemLink):
 		self.name = name

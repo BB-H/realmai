@@ -28,6 +28,7 @@ class JdSpider(scrapy.Spider):
 		if resp.url == self.root_url:
 			links = resp.xpath('//a/@href').extract()
 			for link in links:
+				link = self.toFullURL(resp,link)
 				if link.startswith(self.TYPE_LIST_PAGE):
 					req = Request(link,self.parseUrl)
 					req.meta['depth']=1
@@ -39,6 +40,7 @@ class JdSpider(scrapy.Spider):
 			#1. deal with all items in the list page
 			links = resp.xpath('//*[@id="plist"]/ul/li/div/div[1]/a/@href').extract()
 			for link in links:
+				link = self.toFullURL(resp,link)
 				req = Request(link,self.parseUrl)
 				req.meta['PhantomJS'] = True
 				yield req
@@ -53,6 +55,7 @@ class JdSpider(scrapy.Spider):
 					theNextPage = selector.xpath('@href')[0].extract().encode('utf-8')
 					break
 			if theNextPage != "":
+				theNextPage = self.toFullURL(resp,theNextPage)
 				req = Request(theNextPage,self.parseUrl)
 				yield req
 		if resp.url.startswith(self.TYPE_ITEM_PAGE):
@@ -66,5 +69,10 @@ class JdSpider(scrapy.Spider):
 			item['itemLink'] = resp.url
 			yield item
 	
-	
+	def toFullURL(self,response,url):
+		if not url.startswith("http://"):
+			return urljoin_rfc(get_base_url(response),url.strip())
+		else:
+			return url 
+	 
 	
