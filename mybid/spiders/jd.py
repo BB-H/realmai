@@ -31,7 +31,7 @@ class JdSpider(scrapy.Spider):
 				link = self.toFullURL(resp,link)
 				if link.startswith(self.TYPE_LIST_PAGE):
 					req = Request(link,self.parseUrl)
-					req.meta['depth']=1
+					#req.meta['depth']=1
 					yield req
 		
 	

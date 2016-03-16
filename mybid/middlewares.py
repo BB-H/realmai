@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from scrapy.http import HtmlResponse
 from scrapy.http import Request
-import os, logging, traceback
+import os, logging, traceback, random
 from selenium import webdriver
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from mybid.HttpProxyFactory import HttpProxyFactory
 
 from scrapy.utils.project import get_project_settings
 
@@ -14,18 +16,33 @@ import MySQLdb
 SETTINGS = get_project_settings()
 
 class PhantomJSMiddleware(object):  
+
+	user_agents = [
+				("Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.103 Safari/537.36"),
+				("Mozilla/4.0 (compatible; MSIE 6.0; America Online Browser 1.1; Windows NT 5.1; SV1; .NET CLR 1.0.3705; .NET CLR 1.1.4322; Media Center PC 3.1)"),
+				("Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US) AppleWebKit/527+ (KHTML, like Gecko, Safari/419.3) Arora/0.4 (Change: )"),
+				("Mozilla/5.0 (Windows; U; Windows NT 5.2) AppleWebKit/525.13 (KHTML, like Gecko) Version/3.1 Safari/525.13"),
+				("Mozilla/5.0 (iPad; U; CPU OS 3_2 like Mac OS X; en-us) AppleWebKit/531.21.10 (KHTML, like Gecko) Version/4.0.4 Mobile/7B334b Safari/531.21.10"),
+	]
+	
+	dcap = dict(DesiredCapabilities.PHANTOMJS)
+	dcap["phantomjs.page.settings.userAgent"] = random.choice(user_agents)
+
+	def __init__(self):
+		self.proxyFactory = HttpProxyFactory.getHttpProxyFactory()
+
 	# overwrite process request  
 	def process_request(self, request, spider):
 		if request.meta.has_key('PhantomJS'):# 
 			logging.info('[PID:%s] PhantomJS Requesting: %s' %(os.getpid(),request.url))  
-			service_args = ['--load-images=false', '--disk-cache=true']  
-			#if request.meta.has_key('proxy'): # 如果设置了代理(由代理中间件设置)
-			#	logging.info('PhantomJS proxy:'+request.meta['proxy'][7:])  
-			#	service_args.append('--proxy='+request.meta['proxy'][7:])  
-			driver = webdriver.PhantomJS(executable_path = '/usr/local/bin/phantomjs', service_args = service_args,)
+			proxy = self.proxyFactory.getRandomProxy()
+			if proxy:
+				driver = self.getProxiedDriver(proxy)
+			else:
+				driver = self.getDriver()
 			try:
 				driver.get(request.url)
-				wait = WebDriverWait(driver, 15)#设置超时时长
+				wait = WebDriverWait(driver, 10)#设置超时时长
 				wait.until(EC.visibility_of_element_located((By.ID, 'jd-price')))#直到jd-price元素被填充之后才算请求完成
 				content = driver.page_source.encode('utf-8')
 				url = driver.current_url.encode('utf-8') 
@@ -41,6 +58,21 @@ class PhantomJSMiddleware(object):
 				return HtmlResponse(request.url, encoding = 'utf-8', status = 503, body = '')
 			finally:
 				driver.quit()
+	
+	def getProxiedDriver(self, proxy):
+		service_args = [
+			'--proxy=%s' %proxy,
+			'--proxy-type=http',
+			'--load-images=false'
+			]
+		return webdriver.PhantomJS(executable_path = '/usr/local/bin/phantomjs',desired_capabilities=self.dcap,service_args=service_args,)
+	
+	def getDriver(self):
+		service_args = [
+			'--load-images=false'
+			]
+		driver = webdriver.PhantomJS(executable_path = '/usr/local/bin/phantomjs',desired_capabilities=self.dcap,service_args=service_args,)
+		return driver
  
 
 
